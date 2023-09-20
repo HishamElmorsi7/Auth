@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const validator = require('validator')
+const bcrypt = require('bcryptjs')
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -24,14 +25,30 @@ const userSchema = new mongoose.Schema({
     passwordConfirm: {
         type: String,
         required: [true, 'Please confirm your password'],
+        
+        // this keword works only with normal fun not arrow function
+
+        // The validator here will work only when using create or save like: User.create(),...
+        // So it doesn't work with update so we want to take care!
+
         validate: {
             validator: function(value) {
                 return value === this.password;
             },
 
-            message: "Passwords don't match"
+            message: "Passwords are not the same"
         }
     }
+})
+
+userSchema.pre("save", async function(next) {
+    if (!this.isModified('password')) return next();
+
+    this.password = await bcrypt.hash(this.password, 12);
+
+    this.passwordConfirm = undefined;
+
+    next()
 })
 
 const User = mongoose.model('User', userSchema)
