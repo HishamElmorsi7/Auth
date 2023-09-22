@@ -19,7 +19,9 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, 'Please provide your password'],
-        minlength: [8, 'Password should be at least 8 characters long']
+        minlength: [8, 'Password should be at least 8 characters long'],
+        // To execlude the password when getting from DB
+        select: false
     },
 
     passwordConfirm: {
@@ -50,6 +52,11 @@ userSchema.pre("save", async function(next) {
 
     next()
 })
+
+// This adds the method to all documents of User collection
+userSchema.methods.correctPassword = async (candidatePassword, password) => {
+    return await bcrypt.compare(candidatePassword, password)
+}
 
 const User = mongoose.model('User', userSchema)
 

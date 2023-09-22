@@ -3,6 +3,7 @@ require('dotenv').config();
 const mongoose = require('mongoose')
 const express = require('express');
 const userRouter = require('./routes/userRoutes')
+const globalErrorHandler = require('./controllers/errorController')
 
 const app = express();
 
@@ -13,7 +14,7 @@ port = process.env.PORT || 3000
 const databaseUrl = process.env.DB_CONNECTION_STRING
 
 app.use('/api/v1/users', userRouter)
-
+app.use(globalErrorHandler)
 
 
 mongoose.connect(databaseUrl, {
