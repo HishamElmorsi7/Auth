@@ -61,3 +61,8 @@ exports.login = async (req, res, next) => {
         token
     })
 }
+
+exports.protect = (req, res, next) => {
+    console.log(req.headers)
+    next();
+}
