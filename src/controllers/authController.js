@@ -63,6 +63,20 @@ exports.login = async (req, res, next) => {
 }
 
 exports.protect = (req, res, next) => {
-    console.log(req.headers)
-    next();
+    const token = req.headers.authorization
+    let tokenValue;
+
+    if(token && token.startsWith('Bearer')) {
+        tokenValue = token.split(' ')[1] 
+    }
+
+    if(!tokenValue) {
+        return next(new Error('You are Unauthoraized'))
+    }
+
+
+    next()
+
+
+    
 }
