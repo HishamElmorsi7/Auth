@@ -1,3 +1,4 @@
+const {promisify} = require('util')
 const jwt = require('jsonwebtoken')
 
 const User = require('../models/userModel')
@@ -9,6 +10,9 @@ const signToken = (id) =>{
         expiresIn: process.env.JWT_EXPIRE
     });
 }
+
+const verifyJwt = promisify(jwt.verify)
+
 // The user is signed in automatically when signup
 exports.signup = catchAsync (async (req, res, next) => {
 
@@ -62,7 +66,7 @@ exports.login = async (req, res, next) => {
     })
 }
 
-exports.protect = (req, res, next) => {
+exports.protect = catchAsync(async (req, res, next) => {
     const token = req.headers.authorization
     let tokenValue;
 
@@ -74,9 +78,13 @@ exports.protect = (req, res, next) => {
         return next(new Error('You are Unauthoraized'))
     }
 
+    const decoded = await verifyJwt(tokenValue, process.env.JWT_SECRET)
 
-    next()
+    const currentUser = await User.findById(decoded.id)
 
+    if(!currentUser){
+        return next(new Error('User corresponding to this user does not exist'))
+    }
 
-    
-}
+    next()    
+})
