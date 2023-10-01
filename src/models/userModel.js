@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
 
     email: {
         type: String,
+        unique: true,
         required: [true, 'Please provide your email'],
         validate: [validator.isEmail, 'Please provide a valid email'],
         lowercase: true
@@ -40,6 +41,10 @@ const userSchema = new mongoose.Schema({
 
             message: "Passwords are not the same"
         }
+    },
+
+    changedPassword: {
+        type: Date
     }
 })
 
@@ -56,6 +61,15 @@ userSchema.pre("save", async function(next) {
 // This adds the method to all documents of User collection
 userSchema.methods.correctPassword = async (candidatePassword, password) => {
     return await bcrypt.compare(candidatePassword, password)
+}
+
+userSchema.methods.changedPasswordAfter = function(jwtIssuedAt){
+    if(this.changedPassword) {
+        jwtIssuedAtDate = new Date(jwtIssuedAt * 1000) 
+        return this.changedPassword > jwtIssuedAtDate
+    }
+
+    return false
 }
 
 const User = mongoose.model('User', userSchema)

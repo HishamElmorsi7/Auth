@@ -1,8 +1,9 @@
 const {promisify} = require('util')
 const jwt = require('jsonwebtoken')
-
 const User = require('../models/userModel')
 const catchAsync = require('../utils/catchAsync')
+const AppError = require('../utils/appError')
+
 
 
 const signToken = (id) =>{
@@ -47,13 +48,13 @@ exports.login = async (req, res, next) => {
     const {email, password} = req.body;
 
     if(!email || !password){
-        return next(new Error('Please Add Email and password'))
+        return next(new AppError('Please Add Email and password'))
     }
 
     const user = await User.findOne({ email }).select('+password')
 
     if(!user || !await user.correctPassword(password, user.password)){
-        return next(new Error('Incorrect email or password'))
+        return next(new AppError('Incorrect email or password'))
     }
 
     const token = signToken(user._id)
@@ -67,6 +68,7 @@ exports.login = async (req, res, next) => {
 }
 
 exports.protect = catchAsync(async (req, res, next) => {
+
     const token = req.headers.authorization
     let tokenValue;
 
@@ -75,16 +77,23 @@ exports.protect = catchAsync(async (req, res, next) => {
     }
 
     if(!tokenValue) {
-        return next(new Error('You are Unauthoraized'))
+        return next(new AppError('You are Unauthoraized'))
     }
 
     const decoded = await verifyJwt(tokenValue, process.env.JWT_SECRET)
 
     const currentUser = await User.findById(decoded.id)
 
+    // Check if user still exists
     if(!currentUser){
-        return next(new Error('User corresponding to this user does not exist'))
+        return next(new AppError('User corresponding to this token does not exist'))
     }
+    
+    if(currentUser.changedPasswordAfter(decoded.iat)) {
+        return next( new AppError('User recently changed password, please login again'))
+    }
+
+    req.user = currentUser
 
     next()    
 })
