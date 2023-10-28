@@ -7,7 +7,17 @@ const sendEmail = require('../utils/email')
 const crypto = require('crypto')
 
 
+const createSendToken = (user, statusCode, res) => {
+    const token = signToken(user._id)
 
+    res.status(statusCode).json({
+        status: 'success',
+        token,
+        data: {
+            user
+        }
+    })
+}
 
 
 const signToken = (id) =>{
@@ -35,16 +45,7 @@ exports.signup = catchAsync (async (req, res, next) => {
     const newUser = await User.create(userData)
 
     // With expires: even if the signature was verified it won't work
-    const token = signToken(newUser._id)
-
-
-    res.status(201).json({
-        status: 'success',
-        token,
-        data: {
-            user: newUser
-        }
-    })
+    createSendToken(newUser, 201, res)
 })
 
 
@@ -62,14 +63,8 @@ exports.login = async (req, res, next) => {
         return next(new AppError('Incorrect email or password'))
     }
 
-    const token = signToken(user._id)
+    createSendToken(user, 200, res)
 
-    console.log(token)
-
-    return res.status(200).json({
-        status: 'success',
-        token
-    })
 }
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -179,12 +174,34 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
     await user.save();
 
-    const token = signToken(user._id)
+    createSendToken(newUser, 200, res)
 
-    res.status(200).json({
-        status: "success",
-        token
-    })
+})
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+
+    if(req.user.id === req.user._id) console.log("congratulation")
+    const user = await User.findById(req.user._id).select('+password')
+    const {oldPassword, newPassword, newPasswordConfirm} = req.body
+
+    console.log("old password", oldPassword)
+
+    // console.log({oldpassword, newPassword, newPasswordConfirm})
+
+    if(!(await user.correctPassword(oldPassword, user.password))) {
+        return next(new AppError('Invalid Password', 401))
+    }
+
+    user.password = newPassword
+    user.passwordConfirm = newPasswordConfirm
+
+
+    // we don't use for example findByIdAndUpdate because some validators won't work
+    // with update as this in validators won't work because in this case the current object
+    // isn't saved in memory by mongoose and pre save won't work
+    await user.save()
+
+    createSendToken(user, 200, res)
 
 
 })
