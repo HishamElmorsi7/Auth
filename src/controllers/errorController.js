@@ -40,6 +40,7 @@ const sendDevError = (err, req, res) => {
 const sendProdError = (err, req, res) => {
     if(err.isOperational) {
 
+
         res.status(err.statusCode).json({
             status: err.status,
             message: err.message
@@ -47,8 +48,8 @@ const sendProdError = (err, req, res) => {
 
     } else {
 
-        res.status(error.statusCode).json({
-            status: error.status,
+        res.status(err.statusCode).json({
+            status: err.status,
             message: "OOPS, Something went wrong!"
         })
 
@@ -75,7 +76,8 @@ module.exports = (err, req, res, next) => {
         if(err.name === 'JsonWebTokenError') error = handleJWTError()
         if(err.name === 'TokenExpiredError') error = handleExpiredToken()
 
-        sendProdError(error, req, res)
+
+        sendProdError(err, req, res)
 
     }
 

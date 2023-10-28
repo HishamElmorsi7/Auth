@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcryptjs')
+const crypto = require('crypto')
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -43,9 +44,18 @@ const userSchema = new mongoose.Schema({
         }
     },
 
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
+
     changedPassword: {
         type: Date
-    }
+    },
+
+    passwordResetToken: String,
+    passwordResetExpires: Date
 })
 
 userSchema.pre("save", async function(next) {
@@ -57,6 +67,16 @@ userSchema.pre("save", async function(next) {
 
     next()
 })
+
+userSchema.pre("save", function(next) {
+    if (!this.isModified('password') || this.isNew)  return next();
+
+    // The changedPassword field may take time to saves so it 
+    // may appears to be longer than the issued token so we gurantee
+    this.changedPassword = Date.now() - 1000
+
+    next()
+}) 
 
 // This adds the method to all documents of User collection
 userSchema.methods.correctPassword = async (candidatePassword, password) => {
@@ -70,6 +90,15 @@ userSchema.methods.changedPasswordAfter = function(jwtIssuedAt){
     }
 
     return false
+}
+
+userSchema.methods.createPasswordResetToken = function() {
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    const encrptedToken =  crypto.createHash('sha256').update(resetToken).digest('hex')
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000
+    this.passwordResetToken = encrptedToken
+    
+    return resetToken
 }
 
 const User = mongoose.model('User', userSchema)
