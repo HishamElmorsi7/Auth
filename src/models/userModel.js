@@ -55,7 +55,13 @@ const userSchema = new mongoose.Schema({
     },
 
     passwordResetToken: String,
-    passwordResetExpires: Date
+    passwordResetExpires: Date,
+
+    active: {
+        type: Boolean,
+        default: true,
+        select: false
+    }
 })
 
 userSchema.pre("save", async function(next) {
@@ -78,6 +84,11 @@ userSchema.pre("save", function(next) {
     next()
 }) 
 
+
+userSchema.pre(/^find/, function(next){
+    this.find({ active: true })
+    next()
+})
 // This adds the method to all documents of User collection
 userSchema.methods.correctPassword = async (candidatePassword, password) => {
     return await bcrypt.compare(candidatePassword, password)
