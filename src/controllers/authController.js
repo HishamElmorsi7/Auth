@@ -184,8 +184,6 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     const user = await User.findById(req.user._id).select('+password')
     const {oldPassword, newPassword, newPasswordConfirm} = req.body
 
-    console.log("old password", oldPassword)
-
     // console.log({oldpassword, newPassword, newPasswordConfirm})
 
     if(!(await user.correctPassword(oldPassword, user.password))) {
@@ -204,4 +202,4 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     createSendToken(user, 200, res)
 
 
-})
+})                    
